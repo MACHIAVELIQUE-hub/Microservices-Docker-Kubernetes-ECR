@@ -1,0 +1,65 @@
+#########################################################
+#                    WALTER TACKA
+#########################################################
+# Secret for accessing ECR registry
+#########################################################
+# Configurer .docker/config.json pour accéder aux registry
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: myregistrykey
+data:
+  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSIwOTc0NjQ5NDc2MDkuZGtyLmVjci5ldS13ZXN0LTMuYW1hem9uYXdzLmNvbSI6IHt9Cgl9LAoJIkh0dHBIZWFkZXJzIjogewoJCSJVc2VyLUFnZW50IjogIkRvY2tlci1DbGllbnQvMTkuMDMuMTIgKGRhcndpbikiCgl9LAoJImNyZWRzU3RvcmUiOiAiZGVza3RvcCIsCgkiZXhwZXJpbWVudGFsIjogImRpc2FibGVkIiwKCSJzdGFja09yY2hlc3RyYXRvciI6ICJzd2FybSIKfQ==
+type: kubernetes.io/dockerconfigjson
+---
+#########################################################
+# cinetpay_core_gis
+#########################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cinetpay-core-gis
+spec:
+  selector:
+    matchLabels:
+      app: cinetpay-core-gis
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cinetpay-core-gis 
+    spec:
+      imagePullSecrets:
+        - name: myregistrykey
+      containers:
+      - name: cinetpay-core-gis 
+        image: 097464947609.dkr.ecr.eu-west-3.amazonaws.com/cinetpay_core_gis:0.0.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8001 
+      dnsPolicy: Default       
+---
+#########################################################
+# cinetpay_core_gis service
+#########################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: cinetpay-core-gis-service
+spec:
+  type: NodePort
+  ports:
+    - port: 8001
+      targetPort: 8001
+      protocol: TCP
+  selector:
+    app: cinetpay-core-gis
+
+# spec:
+#   type: ClusterIP
+#   ports:
+#     - port: 8001
+#       targetPort: 8001
+#   selector:
+#     app: cinetpay-core-gis

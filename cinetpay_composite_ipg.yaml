@@ -1,0 +1,87 @@
+#########################################################
+#                    WILFRIED KORANDJI
+#########################################################
+# Secret for accessing ECR registry
+#########################################################
+# Configurer .docker/config.json pour accéder aux registry
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: myregistrykey
+data:
+  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSIwOTc0NjQ5NDc2MDkuZGtyLmVjci5ldS13ZXN0LTMuYW1hem9uYXdzLmNvbSI6IHt9Cgl9LAoJIkh0dHBIZWFkZXJzIjogewoJCSJVc2VyLUFnZW50IjogIkRvY2tlci1DbGllbnQvMTkuMDMuMTIgKGRhcndpbikiCgl9LAoJImNyZWRzU3RvcmUiOiAiZGVza3RvcCIsCgkiZXhwZXJpbWVudGFsIjogImRpc2FibGVkIiwKCSJzdGFja09yY2hlc3RyYXRvciI6ICJzd2FybSIKfQ==
+type: kubernetes.io/dockerconfigjson
+---
+#########################################################
+# Secret for Environment variable
+#########################################################
+apiVersion: v1
+kind: Secret
+metadata:
+    name: ipg-ms
+type: Opaque
+data: 
+    ip-mccs: aHR0cDovLzUyLjQ3LjEwMy40MDozMTc5Nwo=
+    ip-pls: aHR0cDovLzUyLjQ3LjEwMy40MDozMTI4NAo=
+    ip-mpms: aHR0cDovLzUyLjQ3LjE3Ny4xMjg6MzIxNzgK 
+    
+---
+#########################################################
+# cinetpay_composite_gic
+#########################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: composite-ipg
+spec:
+  selector:
+    matchLabels:
+      app: composite-ipg
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: composite-ipg
+    spec:
+      imagePullSecrets:
+        - name: myregistrykey
+      containers:
+      - name: composite-ipg
+        image: 097464947609.dkr.ecr.eu-west-3.amazonaws.com/cinetpay_composite_ipg:0.0.0  
+        env:
+        - name: VERIFY_COMPLIANCE_BASE_URL
+          valueFrom:
+              secretKeyRef:
+                name: ipg-ms
+                key: ip-mccs
+        - name: VERIFY_TOKEN_BASE_URL
+          valueFrom:
+              secretKeyRef:
+                name: ipg-ms
+                key: ip-pls
+        - name: GET_PAYMENT_METHOD_BASE_URL
+          valueFrom:
+              secretKeyRef:
+                name: ipg-ms
+                key: ip-mpms
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+      dnsPolicy: Default        
+---
+#########################################################
+# cinetpay_composite_gic service
+#########################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: composite-ipg-service
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app: composite-ipg

@@ -1,0 +1,87 @@
+#########################################################
+#                    WALTER TACKA
+#########################################################
+# Secret for accessing ECR registry
+#########################################################
+# Configurer .docker/config.json pour accéder aux registry
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: myregistrykey
+data:
+  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSIwOTc0NjQ5NDc2MDkuZGtyLmVjci5ldS13ZXN0LTMuYW1hem9uYXdzLmNvbSI6IHt9Cgl9LAoJIkh0dHBIZWFkZXJzIjogewoJCSJVc2VyLUFnZW50IjogIkRvY2tlci1DbGllbnQvMTkuMDMuMTIgKGRhcndpbikiCgl9LAoJImNyZWRzU3RvcmUiOiAiZGVza3RvcCIsCgkiZXhwZXJpbWVudGFsIjogImRpc2FibGVkIiwKCSJzdGFja09yY2hlc3RyYXRvciI6ICJzd2FybSIKfQ==
+type: kubernetes.io/dockerconfigjson
+---
+#########################################################
+# Secret for Environment variable
+#########################################################
+apiVersion: v1
+kind: Secret
+metadata:
+    name: ip-ms
+type: Opaque
+data: 
+    ip-gis: MzUuMTgwLjQwLjA6MzE1NjgK
+    ip-gqs: MzUuMTgwLjQwLjA6MzE3ODkK
+---
+#########################################################
+# cinetpay_composite_gic
+#########################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: composite-gic
+spec:
+  selector:
+    matchLabels:
+      app: composite-gic
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: composite-gic
+    spec:
+      imagePullSecrets:
+        - name: myregistrykey
+      containers:
+      - name: composite-gic
+        image: 097464947609.dkr.ecr.eu-west-3.amazonaws.com/cinetpay_composite_gic:0.0.0
+        env:
+        - name: HOST_GENERATE_INVOICE
+          valueFrom:
+              secretKeyRef:
+                name: ip-ms
+                key: ip-gis
+        - name: HOST_GENERATE_QRCODE
+          valueFrom:
+              secretKeyRef:
+                name: ip-ms
+                key: ip-gqs
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+      dnsPolicy: Default        
+---
+#########################################################
+# cinetpay_composite_gic service
+#########################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: composite-gic-service
+spec:
+  type: NodePort
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+  selector:
+    app: composite-gic
+# spec:
+#   type: ClusterIP
+#   ports:
+#     - port: 5000
+#       targetPort: 5000
+#   selector:
+#     app: composite-gic

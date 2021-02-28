@@ -1,0 +1,90 @@
+#########################################################
+#                    WALTER TACKA                
+#########################################################
+# Configurer .docker/config.json pour accéder aux registry
+#########################################################
+# Secret for accessing ECR registry
+#########################################################
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: myregistrykey
+data:
+  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSIwOTc0NjQ5NDc2MDkuZGtyLmVjci5ldS13ZXN0LTMuYW1hem9uYXdzLmNvbSI6IHt9Cgl9LAoJIkh0dHBIZWFkZXJzIjogewoJCSJVc2VyLUFnZW50IjogIkRvY2tlci1DbGllbnQvMTkuMDMuMTIgKGRhcndpbikiCgl9LAoJImNyZWRzU3RvcmUiOiAiZGVza3RvcCIsCgkiZXhwZXJpbWVudGFsIjogImRpc2FibGVkIiwKCSJzdGFja09yY2hlc3RyYXRvciI6ICJzd2FybSIKfQ==
+type: kubernetes.io/dockerconfigjson
+---
+#########################################################
+# Secret for Environment variable
+#########################################################
+apiVersion: v1
+kind: Secret
+metadata:
+    name: accesdb
+type: Opaque
+data: 
+    mongodb-uri: bW9uZ29kYitzcnY6Ly9jaW5ldHBheS1ncXNkYjo2VzZMMklEZW85WUlZY2xTQGNpbmV0cGF5ZGItY2x1c3Rlci52Yzgxei5tb25nb2RiLm5ldC9ncXNfZGI/cmV0cnlXcml0ZXM9dHJ1ZSZ3PW1ham9yaXR5Cg==
+    mongodb-name: Z3FzX2RiCg==
+    
+---
+#########################################################
+# cinetpay_core_gqs deployment 
+#########################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cinetpay-core-gqs
+spec:
+  selector:
+    matchLabels:
+      app: cinetpay-core-gqs
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cinetpay-core-gqs
+    spec:
+      imagePullSecrets:
+        - name: myregistrykey
+      containers:
+      - name: cinetpay-core-gqs
+        image: 097464947609.dkr.ecr.eu-west-3.amazonaws.com/cinetpay_core_gqs:0.0.0
+        env:
+        - name: DB_URI
+          valueFrom:
+              secretKeyRef:
+                name: accesdb
+                key: mongodb-uri
+        - name: DB_NAME
+          valueFrom:
+              secretKeyRef:
+                name: accesdb
+                key: mongodb-name
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+      dnsPolicy: Default       
+---
+#########################################################
+# cinetpay_core_gqs service
+#########################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: cinetpay-core-gqs-service
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+  selector:
+    app: cinetpay-core-gqs
+
+# spec:
+#   type: ClusterIP
+#   ports:
+#     - port: 8000
+#       targetPort: 8000
+#   selector:
+#     app: cinetpay-core-gqs

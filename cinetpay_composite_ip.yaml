@@ -1,0 +1,81 @@
+#########################################################
+#                    WILFRIED KORANDJI
+#########################################################
+# Secret for accessing ECR registry
+#########################################################
+# Configurer .docker/config.json pour accéder aux registry
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: myregistrykey
+data:
+  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSIwOTc0NjQ5NDc2MDkuZGtyLmVjci5ldS13ZXN0LTMuYW1hem9uYXdzLmNvbSI6IHt9Cgl9LAoJIkh0dHBIZWFkZXJzIjogewoJCSJVc2VyLUFnZW50IjogIkRvY2tlci1DbGllbnQvMTkuMDMuMTIgKGRhcndpbikiCgl9LAoJImNyZWRzU3RvcmUiOiAiZGVza3RvcCIsCgkiZXhwZXJpbWVudGFsIjogImRpc2FibGVkIiwKCSJzdGFja09yY2hlc3RyYXRvciI6ICJzd2FybSIKfQ==
+type: kubernetes.io/dockerconfigjson
+---
+#########################################################
+# Secret for Environment variable
+#########################################################
+apiVersion: v1
+kind: Secret
+metadata:
+    name: ip-ms
+type: Opaque
+data: 
+    ip-mccs: aHR0cDovLzUyLjQ3LjEwMy40MDozMTc5Nwo=
+    ip-pls: aHR0cDovLzUyLjQ3LjEwMy40MDozMTI4NAo=
+    
+---
+#########################################################
+# cinetpay_composite_gic
+#########################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: composite-ip
+spec:
+  selector:
+    matchLabels:
+      app: composite-ip
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: composite-ip
+    spec:
+      imagePullSecrets:
+        - name: myregistrykey
+      containers:
+      - name: composite-ip
+        image: 097464947609.dkr.ecr.eu-west-3.amazonaws.com/cinetpay_composite_ip:0.0.0
+        env:
+        - name: VERIFY_COMPLIANCE_BASE_URL
+          valueFrom:
+              secretKeyRef:
+                name: ip-ms
+                key: ip-mccs
+        - name: GET_PAYMENT_LINK_BASE_URL
+          valueFrom:
+              secretKeyRef:
+                name: ip-ms
+                key: ip-pls
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+      dnsPolicy: Default        
+---
+#########################################################
+# cinetpay_composite_gic service
+#########################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: composite-ip-service
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app: composite-ip

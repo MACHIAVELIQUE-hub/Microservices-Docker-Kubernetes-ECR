@@ -1,0 +1,65 @@
+#########################################################
+#                BERENGER TRABOUE                    OKAY
+#########################################################
+# Secret for accessing ECR registry
+#########################################################
+# Configurer .docker/config.json pour accéder aux registry
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: myregistrykey
+data:
+  .dockerconfigjson: ewogICJjcmVkc1N0b3JlIiA6ICJkZXNrdG9wIiwKICAiZXhwZXJpbWVudGFsIiA6ICJkaXNhYmxlZCIsCiAgIkh0dHBIZWFkZXJzIiA6IHsKICAgICJVc2VyLUFnZW50IiA6ICJEb2NrZXItQ2xpZW50LzE5LjAzLjEyIChkYXJ3aW4pIgogIH0sCiAgImF1dGhzIiA6IHsKICAgICIwOTc0NjQ5NDc2MDkuZGtyLmVjci5ldS13ZXN0LTMuYW1hem9uYXdzLmNvbSIgOiB7CgogICAgfQogIH0sCiAgInN0YWNrT3JjaGVzdHJhdG9yIiA6ICJzd2FybSIKfQo=
+type: kubernetes.io/dockerconfigjson
+---
+#########################################################
+# cinetpay_omwebpayci deployment 
+#########################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: omwebpayci  
+spec:
+  selector:
+    matchLabels:
+      app: omwebpayci
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: omwebpayci
+    spec:
+      imagePullSecrets:
+        - name: myregistrykey
+      containers:
+      - name: omwebpayci 
+        image: 097464947609.dkr.ecr.eu-west-3.amazonaws.com/cinetpay_omwebpayci:0.1.2
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+      dnsPolicy: Default      
+---
+#########################################################
+# cinetpay_omwebpayci service
+#########################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: omwebpayci-service
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app: omwebpayci
+
+# spec:
+#   type: ClusterIP
+#   ports:
+#     - port: 3000
+#       targetPort: 3000
+#   selector:
+#     app: omwebpayci

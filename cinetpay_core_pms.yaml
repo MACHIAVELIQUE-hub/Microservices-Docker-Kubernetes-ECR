@@ -1,0 +1,90 @@
+#########################################################
+#                    COULIBALY TIORNA                OKAY
+#########################################################
+# Configurer .docker/config.json pour accéder aux registry
+#########################################################
+# Secret for accessing ECR registry
+#########################################################
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: myregistrykey
+data:
+  .dockerconfigjson: ewoJImF1dGhzIjogewoJCSIwOTc0NjQ5NDc2MDkuZGtyLmVjci5ldS13ZXN0LTMuYW1hem9uYXdzLmNvbSI6IHt9Cgl9LAoJIkh0dHBIZWFkZXJzIjogewoJCSJVc2VyLUFnZW50IjogIkRvY2tlci1DbGllbnQvMTkuMDMuMTIgKGRhcndpbikiCgl9LAoJImNyZWRzU3RvcmUiOiAiZGVza3RvcCIsCgkiZXhwZXJpbWVudGFsIjogImRpc2FibGVkIiwKCSJzdGFja09yY2hlc3RyYXRvciI6ICJzd2FybSIKfQ==
+type: kubernetes.io/dockerconfigjson
+
+#########################################################
+# Secret for Environment variable
+#########################################################
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#     name: accesdb
+# type: Opaque
+# data: 
+#     mongodb-uri: bW9uZ29kYjovL2NpbmV0cGF5LWFkbWluZGI6aWphZkVOUWlTdlRuTW5iU0BjaW5ldHBheWRiLWNsdXN0ZXItc2hhcmQtMDAtMDAudmM4MXoubW9uZ29kYi5uZXQ6MjcwMTcsY2luZXRwYXlkYi1jbHVzdGVyLXNoYXJkLTAwLTAxLnZjODF6Lm1vbmdvZGIubmV0OjI3MDE3LGNpbmV0cGF5ZGItY2x1c3Rlci1zaGFyZC0wMC0wMi52Yzgxei5tb25nb2RiLm5ldDoyNzAxNy9ncXNfZGIzP3NzbD10cnVlJnJlcGxpY2FTZXQ9YXRsYXMtMmZxNGN6LXNoYXJkLTAmYXV0aFNvdXJjZT1hZG1pbiZyZXRyeVdyaXRlcz10cnVlJnc9bWFqb3JpdHkK
+#     mongodb-name: Z3FzX2RiMwo=
+#########################################################
+# cinetpay_core_gqs deployment 
+#########################################################
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cinetpay-core-pms
+spec:
+  selector:
+    matchLabels:
+      app: cinetpay-core-pms
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cinetpay-core-pms
+    spec:
+      imagePullSecrets:
+        - name: myregistrykey
+      containers:
+      - name: cinetpay-core-pms
+        image: 097464947609.dkr.ecr.eu-west-3.amazonaws.com/cinetpay_core_pms:0.1.0
+        # env:
+        # - name: DB_URI
+        #   valueFrom:
+        #       secretKeyRef:
+        #         name: accesdb
+        #         key: mongodb-uri
+        # - name: DB_NAME
+        #   valueFrom:
+        #       secretKeyRef:
+        #         name: accesdb
+        #         key: mongodb-name
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+      dnsPolicy: Default       
+---
+#########################################################
+# cinetpay_core_pms service
+#########################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: cinetpay-core-pms-service
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app: cinetpay-core-pms
+# spec:
+#   type: ClusterIP
+#   ports:
+#     - port: 3000     
+#       targetPort: 3000
+#   selector:
+#     app: cinetpay-core-pms
+
+
